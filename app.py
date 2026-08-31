@@ -394,7 +394,7 @@ with tab3:
         _tsim = st.session_state["res_tsim"]
         _sp   = st.session_state["res_sp"]
         _tl   = st.session_state["res_tload"]
-
+ 
 
         # ─── TIME AXIS ──────────────────────────────────────────────────────
         st.markdown("## ⏱️ TIME AXIS SETTINGS")
