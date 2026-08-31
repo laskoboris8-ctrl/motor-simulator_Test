@@ -361,12 +361,21 @@ with tab2:
                              st.session_state.get("t_sim", 10.0))
 
                 st.session_state.update({
-                    "t_pm": r_pm[0], "sp_pm": r_pm[1], "pv_pm": r_pm[2], "tq_pm": r_pm[3], "u_pm": r_pm[4],
-                    "t_id": r_id[0], "sp_id": r_id[1], "pv_id": r_id[2], "tq_id": r_id[3], "u_id": r_id[4],
-                    "t_sim": st.session_state.get("t_sim", 10.0),
-                    "sp_rpm": st.session_state.get("sp_rpm", 1480),
-                    "t_load": st.session_state.get("t_load", 500),
-                    "ready": True
+                            st.session_state["t_pm"]   = r_pm[0]
+                            st.session_state["sp_pm"]  = r_pm[1]
+                            st.session_state["pv_pm"]  = r_pm[2]
+                            st.session_state["tq_pm"]  = r_pm[3]
+                            st.session_state["u_pm"]   = r_pm[4]
+                            st.session_state["t_id"]   = r_id[0]
+                            st.session_state["sp_id"]  = r_id[1]
+                            st.session_state["pv_id"]  = r_id[2]
+                            st.session_state["tq_id"]  = r_id[3]
+                            st.session_state["u_id"]   = r_id[4]
+                            st.session_state["res_tsim"]  = st.session_state.get("t_sim", 10.0)
+                            st.session_state["res_sp"]    = st.session_state.get("sp_rpm", 1480)
+                            st.session_state["res_tload"] = st.session_state.get("t_load", 500)
+                            st.session_state["ready"]  = True
+
                 })
                 st.success("✅ Calculation complete! Go to 📊 RESULTS tab")
             except Exception as e:
@@ -382,9 +391,10 @@ with tab3:
         sp_pm = st.session_state["sp_pm"]; tq_pm = st.session_state["tq_pm"]; u_pm = st.session_state["u_pm"]
         t_id  = st.session_state["t_id"];  pv_id = st.session_state["pv_id"]
         sp_id = st.session_state["sp_id"]; tq_id = st.session_state["tq_id"]; u_id = st.session_state["u_id"]
-        _tsim = st.session_state["t_sim"]
-        _sp   = st.session_state["sp_rpm"]
-        _tl   = st.session_state["t_load"]
+        _tsim = st.session_state["res_tsim"]
+        _sp   = st.session_state["res_sp"]
+        _tl   = st.session_state["res_tload"]
+
 
         # ─── TIME AXIS ──────────────────────────────────────────────────────
         st.markdown("## ⏱️ TIME AXIS SETTINGS")
