@@ -93,49 +93,76 @@ with col4:
 with col5:
     st.metric("🔧 Záťaž", f"{t_load:.1f} N·m")
 
-# ─── GRAFY ──────────────────────────────────────────────────────
+# ─── ČASOVÁ OS (ZOOM) ───────────────────────────────────────────
 st.markdown("---")
 st.markdown("## 📈 GRAFY")
 
+col_zoom1, col_zoom2 = st.columns(2)
+
+with col_zoom1:
+    t_start = st.slider("⏱️ Začiatok časovej osi [s]", 0.0, 9.0, 0.0, 1.0)
+
+with col_zoom2:
+    t_end = st.slider("⏱️ Koniec časovej osi [s]", 1.0, 10.0, 10.0, 1.0)
+
+# Validácia: začiatok nesmie byť väčší ako koniec
+if t_start >= t_end:
+    st.warning("⚠️ Začiatok musí byť menší ako koniec!")
+    t_start = t_end - 1.0
+
+# Filtrujem dáta podľa časovej osi
+mask = (t >= t_start) & (t <= t_end)
+t_filtered = t[mask]
+sp_filtered = sp[mask]
+pv_filtered = pv[mask]
+tq_filtered = tq[mask]
+
+# ─── GRAFY (POD SEBOU, VEĽKÉ) ────────────────────────────────────
 try:
     import matplotlib.pyplot as plt
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4))
+    # Vytvorím dva grafy pod sebou
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
     
-    # Rýchlosť
-    ax1.plot(t, sp, 'o-', color='orange', lw=2, label='Žiadaná (SP)', markersize=2)
-    ax1.plot(t, pv, 's-', color='blue', lw=2, label='Skutočná (PV)', markersize=2)
-    ax1.axhline(1300, color='red', lw=1, linestyle='--', alpha=0.5)
-    ax1.set_xlabel('Čas [s]', fontweight='bold')
-    ax1.set_ylabel('Rýchlosť [RPM]', fontweight='bold')
-    ax1.set_title('RÝCHLOSŤ HRIADELE', fontweight='bold')
+    # --- GRAF 1: RÝCHLOSŤ (VÄČŠÍ) ---
+    ax1.plot(t_filtered, sp_filtered, 'o-', color='orange', lw=2.5, label='Žiadaná (SP)', markersize=3)
+    ax1.plot(t_filtered, pv_filtered, 's-', color='blue', lw=3, label='Skutočná (PV)', markersize=3)
+    ax1.axhline(1300, color='red', lw=1.5, linestyle='--', alpha=0.5, label='Max 1300 RPM')
+    ax1.axhline(0, color='black', lw=0.5)
+    ax1.set_xlabel('Čas [s]', fontweight='bold', fontsize=11)
+    ax1.set_ylabel('Rýchlosť [RPM]', fontweight='bold', fontsize=11)
+    ax1.set_title('📊 RÝCHLOSŤ HRIADELE', fontweight='bold', fontsize=13, color='#FF000F')
     ax1.grid(True, alpha=0.3)
-    ax1.legend()
+    ax1.legend(fontsize=10, loc='best')
+    ax1.set_xlim(t_start, t_end)
     
-    # Moment
-    ax2.plot(t, tq, 'o-', color='green', lw=2, label='Moment/motor', markersize=2)
-    ax2.axhline(15, color='red', lw=1, linestyle='--', alpha=0.5)
-    ax2.set_xlabel('Čas [s]', fontweight='bold')
-    ax2.set_ylabel('Moment [N·m]', fontweight='bold')
-    ax2.set_title('MOMENT NA MOTORE', fontweight='bold')
+    # --- GRAF 2: MOMENT (VÄČŠÍ) ---
+    ax2.plot(t_filtered, tq_filtered, 'o-', color='green', lw=2.5, markersize=3, label='Moment/motor')
+    ax2.axhline(15, color='red', lw=1.5, linestyle='--', alpha=0.5, label='Limit 15 N·m')
+    ax2.axhline(0, color='black', lw=0.5)
+    ax2.set_xlabel('Čas [s]', fontweight='bold', fontsize=11)
+    ax2.set_ylabel('Moment [N·m]', fontweight='bold', fontsize=11)
+    ax2.set_title('⚡ MOMENT NA MOTORE', fontweight='bold', fontsize=13, color='#FF000F')
     ax2.grid(True, alpha=0.3)
-    ax2.legend()
+    ax2.legend(fontsize=10, loc='best')
+    ax2.set_xlim(t_start, t_end)
     
     plt.tight_layout()
-    st.pyplot(fig)
-except:
-    st.warning("⚠️ Graf sa nedá vykresliť")
+    st.pyplot(fig, use_container_width=True)
+    
+except Exception as e:
+    st.error(f"❌ Chyba pri vykresľovaní: {e}")
 
 # ─── TABUĽKA ─────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("## 📋 TABUĽKA")
+st.markdown("## 📋 TABUĽKA SIMULÁCIE")
 
 data = pd.DataFrame({
-    "Čas [s]": np.round(t[::10], 2),
-    "SP [RPM]": np.round(sp[::10], 0),
-    "PV [RPM]": np.round(pv[::10], 0),
-    "Odchýlka [RPM]": np.round(err[::10], 1),
-    "Moment [N·m]": np.round(tq[::10], 2)
+    "Čas [s]": np.round(t_filtered[::5], 2),
+    "SP [RPM]": np.round(sp_filtered[::5], 0),
+    "PV [RPM]": np.round(pv_filtered[::5], 0),
+    "Odchýlka [RPM]": np.round((sp_filtered - pv_filtered)[::5], 1),
+    "Moment [N·m]": np.round(tq_filtered[::5], 2)
 })
 
 st.dataframe(data, use_container_width=True)
