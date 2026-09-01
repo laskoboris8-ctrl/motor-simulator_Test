@@ -56,7 +56,7 @@ MOTORS_DB = {
     }
 }
 
-tab0, tab1, tab2, tab3 = st.tabs(["📐 SYSTEM DESIGN", "⚙️ PARAMETERS", "🎮 CALCULATION", "📊 RESULTS"])
+tab0, tab1, tab2 = st.tabs(["📐 SYSTEM DESIGN", "⚙️ PARAMETERS", "📊 CALCULATION & RESULTS"])
 
 with tab0:
     st.markdown("## 📐 SYSTEM ARCHITECTURE")
@@ -139,7 +139,7 @@ with tab0:
     st.pyplot(fig, use_container_width=True)
 
 with tab1:
-    st.markdown("## 🔧 ALL SIMULATION PARAMETERS")
+    st.markdown("## 🔧 MOTOR & LOAD PARAMETERS")
     st.markdown("---")
     
     st.markdown("### 🎯 QUICK MOTOR SELECTION")
@@ -154,8 +154,6 @@ with tab1:
                     st.session_state["J_pm"] = motor_params["J_pm"]
                     st.session_state["B_pm"] = motor_params["B_pm"]
                     st.session_state["eta_pm"] = motor_params["eta_pm"] * 100
-                    st.session_state["kp_pm"] = motor_params["kp_pm"]
-                    st.session_state["ti_pm"] = motor_params["ti_pm"]
                     st.success(f"✅ {motor_name} loaded!")
                 elif motor_params["type"] == "IND":
                     st.session_state["R1"] = motor_params["R1"]
@@ -164,8 +162,6 @@ with tab1:
                     st.session_state["J_ind"] = motor_params["J_ind"]
                     st.session_state["B_ind"] = motor_params["B_ind"]
                     st.session_state["eta_ind"] = motor_params["eta_ind"] * 100
-                    st.session_state["kp_ind"] = motor_params["kp_ind"]
-                    st.session_state["ti_ind"] = motor_params["ti_ind"]
                     st.success(f"✅ {motor_name} loaded!")
                 st.rerun()
     
@@ -190,13 +186,6 @@ with tab1:
     st.markdown("---")
     st.markdown("### 🔴 PERMANENT MAGNET (PM) MOTOR")
     
-    with st.expander("📋 PM Motor – PI Controller", expanded=True):
-        pm_col1, pm_col2 = st.columns(2)
-        with pm_col1:
-            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm")
-        with pm_col2:
-            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm")
-    
     with st.expander("📋 PM Motor – Motor Parameters", expanded=True):
         pm_col3, pm_col4, pm_col5, pm_col6 = st.columns(4)
         with pm_col3:
@@ -210,13 +199,6 @@ with tab1:
     
     st.markdown("---")
     st.markdown("### 🔵 INDUCTION ASYNCHRONOUS MOTOR")
-    
-    with st.expander("📋 Induction Motor – PI Controller", expanded=True):
-        ind_col1, ind_col2 = st.columns(2)
-        with ind_col1:
-            kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind")
-        with ind_col2:
-            ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind")
     
     with st.expander("📋 Induction Motor – Electrical Parameters", expanded=True):
         ind_e1, ind_e2, ind_e3, ind_e4 = st.columns(4)
@@ -246,7 +228,29 @@ with tab1:
             B_ind = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_ind", 0.05), step=0.01, key="B_ind", format="%.3f")
 
 with tab2:
-    st.markdown("## 🎮 RUN SIMULATION")
+    st.markdown("## 📊 CALCULATION & RESULTS")
+    st.markdown("---")
+    
+    st.markdown("### 🎮 PI CONTROLLER SETTINGS")
+    
+    pcol1, pcol2 = st.columns(2)
+    
+    with pcol1:
+        st.markdown("#### 🔴 PM MOTOR – PI Controller")
+        pm_c1, pm_c2 = st.columns(2)
+        with pm_c1:
+            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm")
+        with pm_c2:
+            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm")
+    
+    with pcol2:
+        st.markdown("#### 🔵 INDUCTION – PI Controller")
+        ind_c1, ind_c2 = st.columns(2)
+        with ind_c1:
+            kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind")
+        with ind_c2:
+            ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind")
+    
     st.markdown("---")
     
     def sim_pm(sp, kp, ti, tl, km, j_mot, b, j_ld, dur):
@@ -314,11 +318,12 @@ with tab2:
                 st.session_state["res_tload"] = t_load
                 st.session_state["ready"] = True
                 
-                st.success("✅ Calculation complete! Go to 📊 RESULTS tab")
+                st.success("✅ Calculation complete! Results below.")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
-with tab3:
+    st.markdown("---")
+
     if st.session_state.get("ready", False):
         t_pm = st.session_state["t_pm"]
         pv_pm = st.session_state["pv_pm"]
@@ -402,21 +407,4 @@ with tab3:
         st.pyplot(fig, use_container_width=True)
 
         st.markdown("---")
-        st.markdown("## 📋 RESULTS TABLE")
-        n = 50
-        ts = np.linspace(t_start, t_end, n)
-        df = pd.DataFrame({
-            "Time [s]": np.round(ts, 2),
-            "SP [RPM]": np.full(n, _sp),
-            "PM [RPM]": np.round(np.interp(ts, t_pm, pv_pm), 0),
-            "PM Tm": np.round(np.interp(ts, t_pm, tq_pm), 2),
-            "IND [RPM]": np.round(np.interp(ts, t_id, pv_id), 0),
-            "IND Tm": np.round(np.interp(ts, t_id, tq_id), 2),
-        })
-        st.dataframe(df, use_container_width=True, height=400)
-
-        st.success("✅ Analysis complete!")
-    else:
-        st.warning("⚠️ Go to 🎮 CALCULATION and click ▶️ RUN CALCULATION")
-
-    st.info("💡 Change motor selection in ⚙️ PARAMETERS and run again")
+        st.markdown("## 📋 RESULTS TABLE
