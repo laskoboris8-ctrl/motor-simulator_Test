@@ -407,4 +407,19 @@ with tab2:
         st.pyplot(fig, use_container_width=True)
 
         st.markdown("---")
-        st.markdown("## 📋 RESULTS TABLE
+        st.markdown("## 📋 RESULTS TABLE")
+        n = 50
+        ts = np.linspace(t_start, t_end, n)
+        df = pd.DataFrame({
+            "Time [s]": np.round(ts, 2),
+            "SP [RPM]": np.full(n, _sp),
+            "PM [RPM]": np.round(np.interp(ts, t_pm, pv_pm), 0),
+            "PM Tm": np.round(np.interp(ts, t_pm, tq_pm), 2),
+            "IND [RPM]": np.round(np.interp(ts, t_id, pv_id), 0),
+            "IND Tm": np.round(np.interp(ts, t_id, tq_id), 2),
+        })
+        st.dataframe(df, use_container_width=True, height=400)
+
+        st.success("✅ Analysis complete!")
+    else:
+        st.info("⚠️ Click ▶️ RUN CALCULATION above to see results")
