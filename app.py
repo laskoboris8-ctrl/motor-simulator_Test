@@ -21,6 +21,41 @@ N_MOT    = 4
 rpm2rads = lambda r: r * 2 * np.pi / 60
 rads2rpm = lambda w: w * 60 / (2 * np.pi)
 
+MOTORS_DB = {
+    "Phase Ultrakt3 (M20622S002932)": {
+        "type": "PM",
+        "Km": 3.34,
+        "J_pm": 0.085,
+        "B_pm": 0.08,
+        "eta_pm": 0.96,
+        "kp_pm": 3.5,
+        "ti_pm": 0.75,
+        "description": "Phase Motion Control Ultrakt3 - High dynamic PM servo motor"
+    },
+    "Default Azipod XO": {
+        "type": "PM",
+        "Km": 0.9,
+        "J_pm": 1.5,
+        "B_pm": 0.04,
+        "eta_pm": 0.97,
+        "kp_pm": 3.0,
+        "ti_pm": 0.8,
+        "description": "Generic Azipod XO 21MW steering motor"
+    },
+    "Generic Induction": {
+        "type": "IND",
+        "R1": 0.095,
+        "R2": 0.075,
+        "X_tot": 1.2,
+        "J_ind": 1.8,
+        "B_ind": 0.05,
+        "eta_ind": 0.93,
+        "kp_ind": 2.5,
+        "ti_ind": 1.0,
+        "description": "Standard induction motor"
+    }
+}
+
 tab0, tab1, tab2, tab3 = st.tabs(["📐 SYSTEM DESIGN", "⚙️ PARAMETERS", "🎮 CALCULATION", "📊 RESULTS"])
 
 with tab0:
@@ -81,7 +116,6 @@ with tab0:
     arrow_load = FancyArrowPatch((10, 6.4), (10, 6.2), arrowstyle='<->', 
                                 mutation_scale=20, color='#228B22', linewidth=2.5)
     ax.add_patch(arrow_load)
-    ax.text(10.5, 6.3, 'Torque', fontsize=8, color='#228B22', fontweight='bold')
     
     ax.annotate('', xy=(1.5, 10), xytext=(1.5, 2),
                 arrowprops=dict(arrowstyle='->', lw=2, color='blue', linestyle='dashed'))
@@ -90,32 +124,55 @@ with tab0:
     legend_y = 1.5
     pm_rect = mpatches.Rectangle((1, legend_y), 0.3, 0.3, fc='#FF000F', alpha=0.7)
     ax.add_patch(pm_rect)
-    ax.text(1.6, legend_y+0.15, 'PM Motor (Permanent Magnet)', fontsize=10, va='center')
+    ax.text(1.6, legend_y+0.15, 'PM Motor', fontsize=10, va='center')
     
     ind_rect = mpatches.Rectangle((10, legend_y), 0.3, 0.3, fc='#6764f6', alpha=0.7)
     ax.add_patch(ind_rect)
-    ax.text(10.6, legend_y+0.15, 'Induction Motor (Asynchronous)', fontsize=10, va='center')
+    ax.text(10.6, legend_y+0.15, 'Induction Motor', fontsize=10, va='center')
     
-    specs_text = """
-    SYSTEM SPECIFICATIONS:
-    • 4 Motors on Common Shaft
-    • PI Speed Controller
-    • Azimuth Load (360° rotation)
-    • Comparison: PM vs Induction
-    • Real-time Dynamics Simulation
-    """
+    specs_text = "SYSTEM: 4 Motors | PI Controller | Azimuth Load | PM vs Induction"
     ax.text(10, 0.3, specs_text, fontsize=9, ha='center', va='top',
             bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8, pad=0.5),
             family='monospace', fontweight='bold')
     
     plt.tight_layout()
     st.pyplot(fig, use_container_width=True)
-    
-    st.markdown("---")
-    st.markdown("### 🔧 System Description\nAzipod XO 21MW Steering System with 4 motors, PI controller, and azimuth load.\nCompare: PM Motors (97%) vs Induction Motors (93%)")
 
 with tab1:
     st.markdown("## 🔧 ALL SIMULATION PARAMETERS")
+    st.markdown("---")
+    
+    st.markdown("### 🎯 QUICK MOTOR SELECTION")
+    
+    motor_cols = st.columns(len(MOTORS_DB))
+    
+    for idx, (motor_name, motor_params) in enumerate(MOTORS_DB.items()):
+        with motor_cols[idx]:
+            if st.button(f"🔌 {motor_name}", use_container_width=True, key=f"motor_{idx}"):
+                if motor_params["type"] == "PM":
+                    st.session_state["Km"] = motor_params["Km"]
+                    st.session_state["J_pm"] = motor_params["J_pm"]
+                    st.session_state["B_pm"] = motor_params["B_pm"]
+                    st.session_state["eta_pm"] = motor_params["eta_pm"] * 100
+                    st.session_state["kp_pm"] = motor_params["kp_pm"]
+                    st.session_state["ti_pm"] = motor_params["ti_pm"]
+                    st.success(f"✅ {motor_name} loaded!")
+                elif motor_params["type"] == "IND":
+                    st.session_state["R1"] = motor_params["R1"]
+                    st.session_state["R2"] = motor_params["R2"]
+                    st.session_state["X_tot"] = motor_params["X_tot"]
+                    st.session_state["J_ind"] = motor_params["J_ind"]
+                    st.session_state["B_ind"] = motor_params["B_ind"]
+                    st.session_state["eta_ind"] = motor_params["eta_ind"] * 100
+                    st.session_state["kp_ind"] = motor_params["kp_ind"]
+                    st.session_state["ti_ind"] = motor_params["ti_ind"]
+                    st.success(f"✅ {motor_name} loaded!")
+                st.rerun()
+    
+    with st.expander("📋 Motor Description", expanded=True):
+        for motor_name, motor_params in MOTORS_DB.items():
+            st.markdown(f"**{motor_name}:** {motor_params['description']}")
+    
     st.markdown("---")
     
     st.markdown("### 🔗 COMMON PARAMETERS")
@@ -126,7 +183,7 @@ with tab1:
     with col_sp2:
         t_load = st.number_input("🔧 Load Torque [N·m]", min_value=0.0, max_value=5000.0, value=500.0, step=50.0, key="t_load")
     with col_sp3:
-        J_load = st.number_input("📦 Load Inertia J [kg·m²]", min_value=0.01, max_value=100.0, value=5.0, step=0.5, key="J_load", format="%.2f")
+        J_load = st.number_input("📦 Load Inertia J [kg·m²]", min_value=0.01, max_value=100.0, value=5.0, step=0.5, key="J_load")
     with col_sp4:
         t_sim = st.number_input("⏱️ Simulation Time [s]", min_value=2.0, max_value=60.0, value=10.0, step=1.0, key="t_sim")
     
@@ -136,20 +193,20 @@ with tab1:
     with st.expander("📋 PM Motor – PI Controller", expanded=True):
         pm_col1, pm_col2 = st.columns(2)
         with pm_col1:
-            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=3.0, step=0.1, key="kp_pm")
+            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm")
         with pm_col2:
-            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=0.8, step=0.05, key="ti_pm")
+            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm")
     
     with st.expander("📋 PM Motor – Motor Parameters", expanded=True):
         pm_col3, pm_col4, pm_col5, pm_col6 = st.columns(4)
         with pm_col3:
-            Km = st.number_input("Km [N·m/A]", min_value=0.01, max_value=100.0, value=0.9, step=0.1, key="Km", format="%.3f")
+            Km = st.number_input("Km [N·m/A]", min_value=0.01, max_value=100.0, value=st.session_state.get("Km", 0.9), step=0.1, key="Km", format="%.3f")
         with pm_col4:
-            J_pm = st.number_input("J Motor [kg·m²] (PM)", min_value=0.001, max_value=50.0, value=1.5, step=0.1, key="J_pm", format="%.3f")
+            J_pm = st.number_input("J Motor [kg·m²]", min_value=0.001, max_value=50.0, value=st.session_state.get("J_pm", 1.5), step=0.1, key="J_pm", format="%.3f")
         with pm_col5:
-            B_pm = st.number_input("B Friction [N·m·s/rad] (PM)", min_value=0.001, max_value=10.0, value=0.04, step=0.01, key="B_pm", format="%.3f")
+            B_pm = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_pm", 0.04), step=0.01, key="B_pm", format="%.3f")
         with pm_col6:
-            eta_pm = st.number_input("Efficiency η [%] (PM)", min_value=50.0, max_value=99.0, value=97.0, step=0.5, key="eta_pm")
+            eta_pm = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_pm", 97.0), step=0.5, key="eta_pm")
     
     st.markdown("---")
     st.markdown("### 🔵 INDUCTION ASYNCHRONOUS MOTOR")
@@ -157,9 +214,9 @@ with tab1:
     with st.expander("📋 Induction Motor – PI Controller", expanded=True):
         ind_col1, ind_col2 = st.columns(2)
         with ind_col1:
-            kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=2.5, step=0.1, key="kp_ind")
+            kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind")
         with ind_col2:
-            ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=1.0, step=0.05, key="ti_ind")
+            ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind")
     
     with st.expander("📋 Induction Motor – Electrical Parameters", expanded=True):
         ind_e1, ind_e2, ind_e3, ind_e4 = st.columns(4)
@@ -170,30 +227,23 @@ with tab1:
         with ind_e3:
             p_pair = st.number_input("Pole Pairs (p)", min_value=1, max_value=6, value=2, step=1, key="p_pair")
         with ind_e4:
-            eta_ind = st.number_input("Efficiency η [%] (IND)", min_value=50.0, max_value=99.0, value=93.0, step=0.5, key="eta_ind")
+            eta_ind = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_ind", 93.0), step=0.5, key="eta_ind")
     
-    with st.expander("📋 Induction Motor – Resistances and Reactances", expanded=True):
-        ind_r1, ind_r2, ind_r3, ind_r4 = st.columns(4)
+    with st.expander("📋 Induction Motor – Resistances", expanded=True):
+        ind_r1, ind_r2, ind_r3 = st.columns(3)
         with ind_r1:
-            R1 = st.number_input("R1 [Ω]", min_value=0.001, max_value=50.0, value=0.095, step=0.01, key="R1", format="%.3f")
+            R1 = st.number_input("R1 [Ω]", min_value=0.001, max_value=50.0, value=st.session_state.get("R1", 0.095), step=0.01, key="R1", format="%.3f")
         with ind_r2:
-            R2 = st.number_input("R2 [Ω]", min_value=0.001, max_value=50.0, value=0.075, step=0.01, key="R2", format="%.3f")
+            R2 = st.number_input("R2 [Ω]", min_value=0.001, max_value=50.0, value=st.session_state.get("R2", 0.075), step=0.01, key="R2", format="%.3f")
         with ind_r3:
-            X_tot = st.number_input("X1+X2 [Ω]", min_value=0.01, max_value=100.0, value=1.2, step=0.1, key="X_tot")
-        with ind_r4:
-            st.info("Reactance = X_stator + X_rotor")
+            X_tot = st.number_input("X1+X2 [Ω]", min_value=0.01, max_value=100.0, value=st.session_state.get("X_tot", 1.2), step=0.1, key="X_tot")
     
     with st.expander("📋 Induction Motor – Mechanical Parameters", expanded=True):
-        ind_m1, ind_m2, ind_m3 = st.columns(3)
+        ind_m1, ind_m2 = st.columns(2)
         with ind_m1:
-            J_ind = st.number_input("J Motor [kg·m²] (IND)", min_value=0.001, max_value=50.0, value=1.8, step=0.1, key="J_ind", format="%.3f")
+            J_ind = st.number_input("J Motor [kg·m²]", min_value=0.001, max_value=50.0, value=st.session_state.get("J_ind", 1.8), step=0.1, key="J_ind", format="%.3f")
         with ind_m2:
-            B_ind = st.number_input("B Friction [N·m·s/rad] (IND)", min_value=0.001, max_value=10.0, value=0.05, step=0.01, key="B_ind", format="%.3f")
-        with ind_m3:
-            st.info("B = viscous friction + bearing friction")
-    
-    st.markdown("---")
-    st.info("💾 All parameters saved")
+            B_ind = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_ind", 0.05), step=0.01, key="B_ind", format="%.3f")
 
 with tab2:
     st.markdown("## 🎮 RUN SIMULATION")
@@ -331,22 +381,22 @@ with tab3:
         axes[0].set_ylim(bottom=-50)
         style(axes[0], "🔴 PM MOTOR – SHAFT SPEED", "Speed [RPM]", "#CC0000")
 
-        axes[1].plot(t_pm[m_pm], tq_pm[m_pm], "-", color=C_PM, lw=2.5, label="Torque / motor")
-        style(axes[1], "🔴 PM MOTOR – MOTOR TORQUE", "Torque [N·m]", "#CC0000")
+        axes[1].plot(t_pm[m_pm], tq_pm[m_pm], "-", color=C_PM, lw=2.5, label="Torque")
+        style(axes[1], "🔴 PM MOTOR – TORQUE", "Torque [N·m]", "#CC0000")
 
         axes[2].plot(t_id[m_id], sp_id[m_id], "--", color=C_SP, lw=2, label="SP – Desired")
         axes[2].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="PV – Actual")
         axes[2].set_ylim(bottom=-50)
-        style(axes[2], "🔵 INDUCTION MOTOR – SHAFT SPEED", "Speed [RPM]", "#4444cc")
+        style(axes[2], "🔵 IND MOTOR – SHAFT SPEED", "Speed [RPM]", "#4444cc")
 
-        axes[3].plot(t_id[m_id], tq_id[m_id], "-", color=C_IND, lw=2.5, label="Torque / motor")
-        style(axes[3], "🔵 INDUCTION MOTOR – MOTOR TORQUE", "Torque [N·m]", "#4444cc")
+        axes[3].plot(t_id[m_id], tq_id[m_id], "-", color=C_IND, lw=2.5, label="Torque")
+        style(axes[3], "🔵 IND MOTOR – TORQUE", "Torque [N·m]", "#4444cc")
 
-        axes[4].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP – Desired")
-        axes[4].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM Motor")
-        axes[4].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 Induction Motor")
+        axes[4].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP")
+        axes[4].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM")
+        axes[4].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 IND")
         axes[4].set_ylim(bottom=-50)
-        style(axes[4], "⚡ COMPARISON: PM vs INDUCTION", "Speed [RPM]", "black")
+        style(axes[4], "⚡ COMPARISON", "Speed [RPM]", "black")
 
         plt.tight_layout()
         st.pyplot(fig, use_container_width=True)
@@ -358,26 +408,15 @@ with tab3:
         df = pd.DataFrame({
             "Time [s]": np.round(ts, 2),
             "SP [RPM]": np.full(n, _sp),
-            "PM PV [RPM]": np.round(np.interp(ts, t_pm, pv_pm), 0),
-            "PM Tm [N·m]": np.round(np.interp(ts, t_pm, tq_pm), 2),
-            "IND PV [RPM]": np.round(np.interp(ts, t_id, pv_id), 0),
-            "IND Tm [N·m]": np.round(np.interp(ts, t_id, tq_id), 2),
+            "PM [RPM]": np.round(np.interp(ts, t_pm, pv_pm), 0),
+            "PM Tm": np.round(np.interp(ts, t_pm, tq_pm), 2),
+            "IND [RPM]": np.round(np.interp(ts, t_id, pv_id), 0),
+            "IND Tm": np.round(np.interp(ts, t_id, tq_id), 2),
         })
         st.dataframe(df, use_container_width=True, height=400)
-
-        st.markdown("---")
-        st.markdown("## 🔍 COMPARISON ANALYSIS")
-        
-        anal_col1, anal_col2 = st.columns(2)
-        with anal_col1:
-            st.markdown("**🔴 PM Motor:**")
-            st.info(f"**Final:** {pv_pm[-1]:.0f} RPM | **Error:** {abs(pv_pm[-1]-_sp):.1f} RPM | **Max Torque:** {np.max(np.abs(tq_pm)):.2f} N·m | **Efficiency:** 97%")
-        with anal_col2:
-            st.markdown("**🔵 Induction Motor:**")
-            st.info(f"**Final:** {pv_id[-1]:.0f} RPM | **Error:** {abs(pv_id[-1]-_sp):.1f} RPM | **Max Torque:** {np.max(np.abs(tq_id)):.2f} N·m | **Efficiency:** 93%")
 
         st.success("✅ Analysis complete!")
     else:
         st.warning("⚠️ Go to 🎮 CALCULATION and click ▶️ RUN CALCULATION")
 
-    st.info("💡 Change parameters in ⚙️ PARAMETERS and run again")
+    st.info("💡 Change motor selection in ⚙️ PARAMETERS and run again")
