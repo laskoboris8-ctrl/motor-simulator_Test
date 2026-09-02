@@ -370,38 +370,68 @@ with tab2:
         st.markdown("## 📈 SIMULATION GRAPHS")
 
         C_SP, C_PM, C_IND = "#FFA500", "#FF000F", "#6764f6"
-        fig, axes = plt.subplots(5, 1, figsize=(15, 28))
+        fig, axes = plt.subplots(4, 1, figsize=(15, 24))
         plt.subplots_adjust(hspace=0.5)
 
-        def style(ax, title, ylabel, c):
-            ax.set_title(title, fontsize=13, fontweight="bold", color=c, pad=8)
-            ax.set_ylabel(ylabel, fontsize=11, fontweight="bold")
-            ax.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
-            ax.set_xlim(t_start, t_end)
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=10, loc="best")
+        ax1 = axes[0]
+        ax1_twin = ax1.twinx()
+        
+        ax1.plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP – Desired", zorder=10)
+        ax1.plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="Speed [RPM]", zorder=10)
+        ax1_twin.plot(t_pm[m_pm], tq_pm[m_pm], "-", color="black", lw=2.5, label="Torque [N·m]", zorder=5)
+        
+        ax1.set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold", color=C_PM)
+        ax1_twin.set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold", color="black")
+        ax1.tick_params(axis='y', labelcolor=C_PM)
+        ax1_twin.tick_params(axis='y', labelcolor="black")
+        ax1.set_xlim(t_start, t_end)
+        ax1.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        ax1.grid(True, alpha=0.3)
+        ax1.set_title("🔴 PM MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#CC0000", pad=8)
+        
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax1_twin.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, fontsize=10, loc="best")
 
-        axes[0].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP – Desired")
-        axes[0].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="PV – Actual")
-        axes[0].set_ylim(bottom=-50)
-        style(axes[0], "🔴 PM MOTOR – SHAFT SPEED", "Speed [RPM]", "#CC0000")
+        ax2 = axes[1]
+        ax2_twin = ax2.twinx()
+        
+        ax2.plot(t_id[m_id], sp_id[m_id], "--", color=C_SP, lw=2, label="SP – Desired", zorder=10)
+        ax2.plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="Speed [RPM]", zorder=10)
+        ax2_twin.plot(t_id[m_id], tq_id[m_id], "-", color="black", lw=2.5, label="Torque [N·m]", zorder=5)
+        
+        ax2.set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold", color=C_IND)
+        ax2_twin.set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold", color="black")
+        ax2.tick_params(axis='y', labelcolor=C_IND)
+        ax2_twin.tick_params(axis='y', labelcolor="black")
+        ax2.set_xlim(t_start, t_end)
+        ax2.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        ax2.grid(True, alpha=0.3)
+        ax2.set_title("🔵 IND MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#4444cc", pad=8)
+        
+        lines3, labels3 = ax2.get_legend_handles_labels()
+        lines4, labels4 = ax2_twin.get_legend_handles_labels()
+        ax2.legend(lines3 + lines4, labels3 + labels4, fontsize=10, loc="best")
 
-        axes[1].plot(t_pm[m_pm], tq_pm[m_pm], "-", color=C_PM, lw=2.5, label="Torque")
-        style(axes[1], "🔴 PM MOTOR – TORQUE", "Torque [N·m]", "#CC0000")
-
-        axes[2].plot(t_id[m_id], sp_id[m_id], "--", color=C_SP, lw=2, label="SP – Desired")
-        axes[2].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="PV – Actual")
+        axes[2].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP")
+        axes[2].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM")
+        axes[2].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 IND")
         axes[2].set_ylim(bottom=-50)
-        style(axes[2], "🔵 IND MOTOR – SHAFT SPEED", "Speed [RPM]", "#4444cc")
+        axes[2].set_title("⚡ SPEED COMPARISON", fontsize=13, fontweight="bold", color="black", pad=8)
+        axes[2].set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold")
+        axes[2].set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        axes[2].set_xlim(t_start, t_end)
+        axes[2].grid(True, alpha=0.3)
+        axes[2].legend(fontsize=10, loc="best")
 
-        axes[3].plot(t_id[m_id], tq_id[m_id], "-", color=C_IND, lw=2.5, label="Torque")
-        style(axes[3], "🔵 IND MOTOR – TORQUE", "Torque [N·m]", "#4444cc")
-
-        axes[4].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP")
-        axes[4].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM")
-        axes[4].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 IND")
-        axes[4].set_ylim(bottom=-50)
-        style(axes[4], "⚡ COMPARISON", "Speed [RPM]", "black")
+        axes[3].plot(t_pm[m_pm], tq_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM Torque")
+        axes[3].plot(t_id[m_id], tq_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 IND Torque")
+        axes[3].set_title("⚡ TORQUE COMPARISON", fontsize=13, fontweight="bold", color="black", pad=8)
+        axes[3].set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold")
+        axes[3].set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        axes[3].set_xlim(t_start, t_end)
+        axes[3].grid(True, alpha=0.3)
+        axes[3].legend(fontsize=10, loc="best")
 
         plt.tight_layout()
         st.pyplot(fig, use_container_width=True)
