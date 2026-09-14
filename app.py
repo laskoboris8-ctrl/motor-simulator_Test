@@ -231,28 +231,10 @@ with tab2:
     st.markdown("## 📊 CALCULATION & RESULTS")
     st.markdown("---")
     
-    st.markdown("### 🎮 PI CONTROLLER SETTINGS")
-    
-    pcol1, pcol2 = st.columns(2)
-    
-    with pcol1:
-        st.markdown("#### 🔴 PM MOTOR – PI Controller")
-        pm_c1, pm_c2 = st.columns(2)
-        with pm_c1:
-            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm")
-        with pm_c2:
-            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm")
-    
-    with pcol2:
-        st.markdown("#### 🔵 INDUCTION – PI Controller")
-        ind_c1, ind_c2 = st.columns(2)
-        with ind_c1:
-            kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind")
-        with ind_c2:
-            ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind")
-    
-    st.markdown("---")
-    
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+    with col_btn2:
+        run_btn = st.button("▶️   RUN CALCULATION", use_container_width=True, type="primary")
+
     def sim_pm(sp, kp, ti, tl, km, j_mot, b, j_ld, dur):
         J = N_MOT * j_mot + j_ld
         omega, intg = 0.0, 0.0
@@ -294,10 +276,6 @@ with tab2:
             pv_a.append(rads2rpm(omega))
             tq_a.append(Tm)
         return np.array(t_a), np.array(sp_a), np.array(pv_a), np.array(tq_a)
-
-    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-    with col_btn2:
-        run_btn = st.button("▶️   RUN CALCULATION", use_container_width=True, type="primary")
 
     if run_btn:
         with st.spinner("🔄 Calculation in progress ..."):
@@ -366,6 +344,27 @@ with tab2:
         with mc6:
             st.metric("🔧 Load", f"{_tl:.1f} N·m")
 
+        st.markdown("---")
+        st.markdown("### 🎮 PI CONTROLLER SETTINGS")
+        
+        pcol1, pcol2 = st.columns(2)
+        
+        with pcol1:
+            st.markdown("#### 🔴 PM MOTOR – PI Controller")
+            pm_c1, pm_c2 = st.columns(2)
+            with pm_c1:
+                kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm_result")
+            with pm_c2:
+                ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm_result")
+        
+        with pcol2:
+            st.markdown("#### 🔵 INDUCTION – PI Controller")
+            ind_c1, ind_c2 = st.columns(2)
+            with ind_c1:
+                kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind_result")
+            with ind_c2:
+                ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind_result")
+        
         st.markdown("---")
         st.markdown("## 📈 SIMULATION GRAPHS")
 
