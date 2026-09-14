@@ -103,7 +103,7 @@ with tab0:
     
     shaft_circle = Circle((10, 7), 0.6, color='#888888', ec='black', linewidth=2)
     ax.add_patch(shaft_circle)
-    ax.text(10, 7, 'Steering module', fontsize=10, fontweight='bold', ha='center', va='center', color='white')
+    ax.text(10, 7, 'Steering module', fontsize=6, fontweight='bold', ha='center', va='center', color='white')
     
     motor_positions = [
         (5.5, 10, 'Motor 1\n(PM/IND)', '#FF000F'),
