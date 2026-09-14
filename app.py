@@ -129,7 +129,7 @@ with tab0:
     load_box = FancyBboxPatch((8.5, 5.2), 3, 1, boxstyle='round,pad=0.1',
                               edgecolor='#228B22', facecolor='#90EE90', linewidth=2)
     ax.add_patch(load_box)
-    ax.text(10, 5.7, 'LOAD (Azimuth)', fontsize=10, fontweight='bold', ha='center', va='center')
+    ax.text(10, 5.7, 'LOAD (Steering module)', fontsize=10, fontweight='bold', ha='center', va='center')
     
     arrow_load = FancyArrowPatch((10, 6.4), (10, 6.2), arrowstyle='<->', 
                                 mutation_scale=20, color='#228B22', linewidth=2.5)
