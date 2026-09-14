@@ -111,7 +111,7 @@ with tab0:
     load_box = FancyBboxPatch((8.5, 5.2), 3, 1, boxstyle='round,pad=0.1',
                               edgecolor='#228B22', facecolor='#90EE90', linewidth=2)
     ax.add_patch(load_box)
-    ax.text(10, 5.7, 'LOAD (Steering module)', fontsize=10, fontweight='bold', ha='center', va='center')
+    ax.text(10, 5.7, 'LOAD (Azimuth)', fontsize=10, fontweight='bold', ha='center', va='center')
     
     arrow_load = FancyArrowPatch((10, 6.4), (10, 6.2), arrowstyle='<->', 
                                 mutation_scale=20, color='#228B22', linewidth=2.5)
@@ -196,24 +196,41 @@ with tab1:
             B_pm = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_pm", 0.04), step=0.01, key="B_pm", format="%.3f")
         with pm_col6:
             eta_pm = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_pm", 97.0), step=0.5, key="eta_pm")
+    
+    st.markdown("---")
+    st.markdown("### 🔵 INDUCTION ASYNCHRONOUS MOTOR")
+    
+    with st.expander("📋 Induction Motor – Electrical Parameters", expanded=True):
+        ind_e1, ind_e2, ind_e3, ind_e4 = st.columns(4)
+        with ind_e1:
+            V_ph = st.number_input("Phase Voltage V [V]", min_value=10.0, max_value=1000.0, value=230.0, step=10.0, key="V_ph")
+        with ind_e2:
+            f_hz = st.number_input("Frequency [Hz]", min_value=25.0, max_value=100.0, value=50.0, step=5.0, key="f_hz")
+        with ind_e3:
+            p_pair = st.number_input("Pole Pairs (p)", min_value=1, max_value=6, value=2, step=1, key="p_pair")
+        with ind_e4:
+            eta_ind = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_ind", 93.0), step=0.5, key="eta_ind")
+    
+    with st.expander("📋 Induction Motor – Resistances", expanded=True):
+        ind_r1, ind_r2, ind_r3 = st.columns(3)
+        with ind_r1:
+            R1 = st.number_input("R1 [Ω]", min_value=0.001, max_value=50.0, value=st.session_state.get("R1", 0.095), step=0.01, key="R1", format="%.3f")
+        with ind_r2:
+            R2 = st.number_input("R2 [Ω]", min_value=0.001, max_value=50.0, value=st.session_state.get("R2", 0.075), step=0.01, key="R2", format="%.3f")
+        with ind_r3:
+            X_tot = st.number_input("X1+X2 [Ω]", min_value=0.01, max_value=100.0, value=st.session_state.get("X_tot", 1.2), step=0.1, key="X_tot")
+    
+    with st.expander("📋 Induction Motor – Mechanical Parameters", expanded=True):
+        ind_m1, ind_m2 = st.columns(2)
+        with ind_m1:
+            J_ind = st.number_input("J Motor [kg·m²]", min_value=0.001, max_value=50.0, value=st.session_state.get("J_ind", 1.8), step=0.1, key="J_ind", format="%.3f")
+        with ind_m2:
+            B_ind = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_ind", 0.05), step=0.01, key="B_ind", format="%.3f")
 
 with tab2:
     st.markdown("## 📊 CALCULATION & RESULTS")
     st.markdown("---")
-    
-    st.markdown("### 🎮 PI CONTROLLER SETTINGS")
-    
-    pcol1, pcol2 = st.columns(2)
-    
-    with pcol1:
-        st.markdown("#### 🔴 PM MOTOR – PI Controller")
-        pm_c1, pm_c2 = st.columns(2)
-        with pm_c1:
-            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm")
-        with pm_c2:
-            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm")
-    st.markdown("---")
-    
+
     def sim_pm(sp, kp, ti, tl, km, j_mot, b, j_ld, dur):
         J = N_MOT * j_mot + j_ld
         omega, intg = 0.0, 0.0
@@ -263,8 +280,8 @@ with tab2:
     if run_btn:
         with st.spinner("🔄 Calculation in progress ..."):
             try:
-                r_pm = sim_pm(sp_rpm, kp_pm, ti_pm, t_load, Km, J_pm, B_pm, J_load, t_sim)
-                r_id = sim_ind(sp_rpm, kp_ind, ti_ind, t_load, V_ph, f_hz, R1, R2, X_tot, J_ind, B_ind, J_load, p_pair, t_sim)
+                r_pm = sim_pm(sp_rpm, st.session_state.get("kp_pm", 3.0), st.session_state.get("ti_pm", 0.8), t_load, Km, J_pm, B_pm, J_load, t_sim)
+                r_id = sim_ind(sp_rpm, st.session_state.get("kp_ind", 2.5), st.session_state.get("ti_ind", 1.0), t_load, V_ph, f_hz, R1, R2, X_tot, J_ind, B_ind, J_load, p_pair, t_sim)
 
                 st.session_state["t_pm"] = r_pm[0]
                 st.session_state["sp_pm"] = r_pm[1]
@@ -278,7 +295,7 @@ with tab2:
                 st.session_state["res_sp"] = sp_rpm
                 st.session_state["res_tload"] = t_load
                 st.session_state["ready"] = True
-                
+
                 st.success("✅ Calculation complete! Results below.")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
@@ -298,6 +315,30 @@ with tab2:
         _sp = st.session_state["res_sp"]
         _tl = st.session_state["res_tload"]
 
+        # ===== 🎮 PI CONTROLLER SETTINGS =====
+        st.markdown("## 🎮 PI CONTROLLER SETTINGS")
+
+        pcol1, pcol2 = st.columns(2)
+
+        with pcol1:
+            st.markdown("#### 🔴 PM MOTOR – PI Controller")
+            pm_c1, pm_c2 = st.columns(2)
+            with pm_c1:
+                kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm_display")
+            with pm_c2:
+                ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm_display")
+
+        with pcol2:
+            st.markdown("#### 🔵 INDUCTION – PI Controller")
+            ind_c1, ind_c2 = st.columns(2)
+            with ind_c1:
+                kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind_display")
+            with ind_c2:
+                ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind_display")
+
+        st.markdown("---")
+
+        # ===== ⏱️ TIME AXIS SETTINGS =====
         st.markdown("## ⏱️ TIME AXIS SETTINGS")
         tc1, tc2 = st.columns(2)
         with tc1:
@@ -312,7 +353,7 @@ with tab2:
 
         st.markdown("---")
         st.markdown("## 📊 KEY METRICS")
-        
+
         mc1, mc2, mc3, mc4, mc5, mc6 = st.columns(6)
         with mc1:
             st.metric("🎯 Setpoint", f"{_sp:.0f} RPM")
@@ -336,11 +377,9 @@ with tab2:
 
         ax1 = axes[0]
         ax1_twin = ax1.twinx()
-        
         ax1.plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP – Desired", zorder=10)
         ax1.plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="Speed [RPM]", zorder=10)
         ax1_twin.plot(t_pm[m_pm], tq_pm[m_pm], "-", color="black", lw=2.5, label="Torque [N·m]", zorder=5)
-        
         ax1.set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold", color=C_PM)
         ax1_twin.set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold", color="black")
         ax1.tick_params(axis='y', labelcolor=C_PM)
@@ -349,18 +388,15 @@ with tab2:
         ax1.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
         ax1.grid(True, alpha=0.3)
         ax1.set_title("🔴 PM MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#CC0000", pad=8)
-        
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax1_twin.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, fontsize=10, loc="best")
 
         ax2 = axes[1]
         ax2_twin = ax2.twinx()
-        
         ax2.plot(t_id[m_id], sp_id[m_id], "--", color=C_SP, lw=2, label="SP – Desired", zorder=10)
         ax2.plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="Speed [RPM]", zorder=10)
         ax2_twin.plot(t_id[m_id], tq_id[m_id], "-", color="black", lw=2.5, label="Torque [N·m]", zorder=5)
-        
         ax2.set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold", color=C_IND)
         ax2_twin.set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold", color="black")
         ax2.tick_params(axis='y', labelcolor=C_IND)
@@ -369,7 +405,6 @@ with tab2:
         ax2.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
         ax2.grid(True, alpha=0.3)
         ax2.set_title("🔵 IND MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#4444cc", pad=8)
-        
         lines3, labels3 = ax2.get_legend_handles_labels()
         lines4, labels4 = ax2_twin.get_legend_handles_labels()
         ax2.legend(lines3 + lines4, labels3 + labels4, fontsize=10, loc="best")
