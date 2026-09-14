@@ -138,6 +138,8 @@ with tab1:
                     st.session_state["J_pm"] = motor_params["J_pm"]
                     st.session_state["B_pm"] = motor_params["B_pm"]
                     st.session_state["eta_pm"] = motor_params["eta_pm"] * 100
+                    st.session_state["kp_pm"] = motor_params["kp_pm"]
+                    st.session_state["ti_pm"] = motor_params["ti_pm"]
                     st.success(f"✅ {motor_name} loaded!")
                 st.rerun()
     
@@ -185,7 +187,7 @@ with tab2:
             e = rpm2rads(sp) - omega
             intg += e * dt
             u = kp * e + (kp / max(ti, 1e-6)) * intg
-            Tm = np.clip(km * u / N_MOT, -50.0, 150.0)
+            Tm = np.clip(km * u, -50.0, 150.0)
             domega = (N_MOT * Tm - tl - b * omega) / J
             omega = max(0.0, min(omega + domega * dt, rpm2rads(2000)))
             t_a.append(i * dt)
