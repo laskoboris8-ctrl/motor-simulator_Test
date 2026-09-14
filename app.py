@@ -42,26 +42,8 @@ MOTORS_DB = {
         "ti_pm": 0.8,
         "description": "Generic Azipod XO 21MW steering motor"
     },
-    "ABB M3Bp 280SMA4 (86kW)": {
-        "type": "IND",
-        "V_ph": 690.0,
-        "f_hz": 60.0,
-        "p_pair": 2,
-        "R1": 0.12,
-        "R2": 0.10,
-        "X_tot": 2.5,
-        "J_ind": 8.5,
-        "B_ind": 0.15,
-        "eta_ind": 0.96,
-        "kp_ind": 4.0,
-        "ti_ind": 1.2,
-        "description": "ABB M3Bp 280SMA4 IMB35/IM2001 - 690V, 90A, 86kW, 1784rpm, 461Nm, 60Hz"
-    },
     "Generic Induction": {
         "type": "IND",
-        "V_ph": 230.0,
-        "f_hz": 50.0,
-        "p_pair": 2,
         "R1": 0.095,
         "R2": 0.075,
         "X_tot": 1.2,
@@ -94,7 +76,7 @@ with tab0:
                                edgecolor='#FF000F', facecolor='#FFE5E5', linewidth=2)
     ax.add_patch(ctrl_box)
     ax.text(2.25, 11, 'PI Controller', fontsize=11, fontweight='bold', ha='center', va='center')
-    ax.text(2.25, 10.5, 'Kp, Ti, Bias', fontsize=9, ha='center', va='center', style='italic')
+    ax.text(2.25, 10.5, 'Kp, Ti', fontsize=9, ha='center', va='center', style='italic')
     
     arrow1 = FancyArrowPatch((4, 10.75), (5.5, 10.75), arrowstyle='->', 
                              mutation_scale=25, color='#FF000F', linewidth=2)
@@ -103,7 +85,7 @@ with tab0:
     
     shaft_circle = Circle((10, 7), 0.6, color='#888888', ec='black', linewidth=2)
     ax.add_patch(shaft_circle)
-    ax.text(10, 7, 'Steering module', fontsize=6, fontweight='bold', ha='center', va='center', color='white')
+    ax.text(10, 7, 'SHAFT', fontsize=10, fontweight='bold', ha='center', va='center', color='white')
     
     motor_positions = [
         (5.5, 10, 'Motor 1\n(PM/IND)', '#FF000F'),
@@ -129,7 +111,7 @@ with tab0:
     load_box = FancyBboxPatch((8.5, 5.2), 3, 1, boxstyle='round,pad=0.1',
                               edgecolor='#228B22', facecolor='#90EE90', linewidth=2)
     ax.add_patch(load_box)
-    ax.text(10, 5.7, 'LOAD (Steering module)', fontsize=10, fontweight='bold', ha='center', va='center')
+    ax.text(10, 5.7, 'LOAD (Azimuth)', fontsize=10, fontweight='bold', ha='center', va='center')
     
     arrow_load = FancyArrowPatch((10, 6.4), (10, 6.2), arrowstyle='<->', 
                                 mutation_scale=20, color='#228B22', linewidth=2.5)
@@ -148,7 +130,7 @@ with tab0:
     ax.add_patch(ind_rect)
     ax.text(10.6, legend_y+0.15, 'Induction Motor', fontsize=10, va='center')
     
-    specs_text = "SYSTEM: 4 Motors | PI Controller with Bias | Azimuth Load | PM vs Induction"
+    specs_text = "SYSTEM: 4 Motors | PI Controller | Azimuth Load | PM vs Induction"
     ax.text(10, 0.3, specs_text, fontsize=9, ha='center', va='top',
             bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8, pad=0.5),
             family='monospace', fontweight='bold')
@@ -174,9 +156,6 @@ with tab1:
                     st.session_state["eta_pm"] = motor_params["eta_pm"] * 100
                     st.success(f"✅ {motor_name} loaded!")
                 elif motor_params["type"] == "IND":
-                    st.session_state["V_ph"] = motor_params["V_ph"]
-                    st.session_state["f_hz"] = motor_params["f_hz"]
-                    st.session_state["p_pair"] = motor_params["p_pair"]
                     st.session_state["R1"] = motor_params["R1"]
                     st.session_state["R2"] = motor_params["R2"]
                     st.session_state["X_tot"] = motor_params["X_tot"]
@@ -224,11 +203,11 @@ with tab1:
     with st.expander("📋 Induction Motor – Electrical Parameters", expanded=True):
         ind_e1, ind_e2, ind_e3, ind_e4 = st.columns(4)
         with ind_e1:
-            V_ph = st.number_input("Phase Voltage V [V]", min_value=10.0, max_value=1000.0, value=st.session_state.get("V_ph", 230.0), step=10.0, key="V_ph")
+            V_ph = st.number_input("Phase Voltage V [V]", min_value=10.0, max_value=1000.0, value=230.0, step=10.0, key="V_ph")
         with ind_e2:
-            f_hz = st.number_input("Frequency [Hz]", min_value=25.0, max_value=100.0, value=st.session_state.get("f_hz", 50.0), step=5.0, key="f_hz")
+            f_hz = st.number_input("Frequency [Hz]", min_value=25.0, max_value=100.0, value=50.0, step=5.0, key="f_hz")
         with ind_e3:
-            p_pair = st.number_input("Pole Pairs (p)", min_value=1, max_value=6, value=st.session_state.get("p_pair", 2), step=1, key="p_pair")
+            p_pair = st.number_input("Pole Pairs (p)", min_value=1, max_value=6, value=2, step=1, key="p_pair")
         with ind_e4:
             eta_ind = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_ind", 93.0), step=0.5, key="eta_ind")
     
@@ -277,12 +256,11 @@ with tab2:
     def sim_pm(sp, kp, ti, tl, km, j_mot, b, j_ld, dur):
         J = N_MOT * j_mot + j_ld
         omega, intg = 0.0, 0.0
-        bias = tl / (N_MOT * km)
         t_a, sp_a, pv_a, tq_a = [], [], [], []
         for i in range(int(dur / dt)):
             e = rpm2rads(sp) - omega
             intg += e * dt
-            u = bias + kp * e + (kp / max(ti, 1e-6)) * intg
+            u = kp * e + (kp / max(ti, 1e-6)) * intg
             Tm = np.clip(km * u / N_MOT, -50.0, 150.0)
             domega = (N_MOT * Tm - tl - b * omega) / J
             omega = max(0.0, min(omega + domega * dt, rpm2rads(2000)))
@@ -296,12 +274,11 @@ with tab2:
         J = N_MOT * j_mot + j_ld
         omega_s_max = 2 * np.pi * f / pp
         omega, intg = 0.0, 0.0
-        bias = tl / (N_MOT * 1.0)
         t_a, sp_a, pv_a, tq_a = [], [], [], []
         for i in range(int(dur / dt)):
             e = rpm2rads(sp) - omega
             intg += e * dt
-            u = bias + kp * e + (kp / max(ti, 1e-6)) * intg
+            u = kp * e + (kp / max(ti, 1e-6)) * intg
             omega_s = np.clip(u, 0.0, omega_s_max * 1.05)
             V_act = V * min(omega_s / max(omega_s_max, 1e-6), 1.1)
             if omega_s > 0.5:
@@ -410,7 +387,7 @@ with tab2:
         ax1.set_xlim(t_start, t_end)
         ax1.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
         ax1.grid(True, alpha=0.3)
-        ax1.set_title("🔴 PM MOTOR – SPEED + TORQUE (with BIAS)", fontsize=13, fontweight="bold", color="#CC0000", pad=8)
+        ax1.set_title("🔴 PM MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#CC0000", pad=8)
         
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax1_twin.get_legend_handles_labels()
@@ -430,7 +407,7 @@ with tab2:
         ax2.set_xlim(t_start, t_end)
         ax2.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
         ax2.grid(True, alpha=0.3)
-        ax2.set_title("🔵 IND MOTOR – SPEED + TORQUE (with BIAS)", fontsize=13, fontweight="bold", color="#4444cc", pad=8)
+        ax2.set_title("🔵 IND MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#4444cc", pad=8)
         
         lines3, labels3 = ax2.get_legend_handles_labels()
         lines4, labels4 = ax2_twin.get_legend_handles_labels()
