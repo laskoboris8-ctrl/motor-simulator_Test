@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, Circle, FancyArrowPatch
 
-st.set_page_config(page_title="PM Motor Control", layout="wide")
+st.set_page_config(page_title="PM vs Induction Motor", layout="wide")
 
 st.markdown("""
 <h1 style='text-align:center; color:#FF000F;'>
-⚙️ PM Motor Control – PI Control
+⚙️ Comparison: PM Motor vs Induction Motor – PI Control
 </h1>
 <p style='text-align:center; color:gray; font-size:16px;'>
 Azipod XO 21MW – Steering System (4 motors on common shaft)
@@ -41,6 +41,18 @@ MOTORS_DB = {
         "kp_pm": 3.0,
         "ti_pm": 0.8,
         "description": "Generic Azipod XO 21MW steering motor"
+    },
+    "Generic Induction": {
+        "type": "IND",
+        "R1": 0.095,
+        "R2": 0.075,
+        "X_tot": 1.2,
+        "J_ind": 1.8,
+        "B_ind": 0.05,
+        "eta_ind": 0.93,
+        "kp_ind": 2.5,
+        "ti_ind": 1.0,
+        "description": "Standard induction motor"
     }
 }
 
@@ -76,10 +88,10 @@ with tab0:
     ax.text(10, 7, 'SHAFT', fontsize=10, fontweight='bold', ha='center', va='center', color='white')
     
     motor_positions = [
-        (5.5, 10, 'Motor 1\n(PM)', '#FF000F'),
-        (14.5, 10, 'Motor 2\n(PM)', '#FF000F'),
-        (5.5, 4, 'Motor 3\n(PM)', '#FF000F'),
-        (14.5, 4, 'Motor 4\n(PM)', '#FF000F'),
+        (5.5, 10, 'Motor 1\n(PM/IND)', '#FF000F'),
+        (14.5, 10, 'Motor 2\n(PM/IND)', '#6764f6'),
+        (5.5, 4, 'Motor 3\n(PM/IND)', '#FF000F'),
+        (14.5, 4, 'Motor 4\n(PM/IND)', '#6764f6'),
     ]
     
     for x, y, label, color in motor_positions:
@@ -114,7 +126,11 @@ with tab0:
     ax.add_patch(pm_rect)
     ax.text(1.6, legend_y+0.15, 'PM Motor', fontsize=10, va='center')
     
-    specs_text = "SYSTEM: 4 PM Motors | PI Controller | Azimuth Load"
+    ind_rect = mpatches.Rectangle((10, legend_y), 0.3, 0.3, fc='#6764f6', alpha=0.7)
+    ax.add_patch(ind_rect)
+    ax.text(10.6, legend_y+0.15, 'Induction Motor', fontsize=10, va='center')
+    
+    specs_text = "SYSTEM: 4 Motors | PI Controller | Azimuth Load | PM vs Induction"
     ax.text(10, 0.3, specs_text, fontsize=9, ha='center', va='top',
             bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8, pad=0.5),
             family='monospace', fontweight='bold')
@@ -138,8 +154,14 @@ with tab1:
                     st.session_state["J_pm"] = motor_params["J_pm"]
                     st.session_state["B_pm"] = motor_params["B_pm"]
                     st.session_state["eta_pm"] = motor_params["eta_pm"] * 100
-                    st.session_state["kp_pm"] = motor_params["kp_pm"]
-                    st.session_state["ti_pm"] = motor_params["ti_pm"]
+                    st.success(f"✅ {motor_name} loaded!")
+                elif motor_params["type"] == "IND":
+                    st.session_state["R1"] = motor_params["R1"]
+                    st.session_state["R2"] = motor_params["R2"]
+                    st.session_state["X_tot"] = motor_params["X_tot"]
+                    st.session_state["J_ind"] = motor_params["J_ind"]
+                    st.session_state["B_ind"] = motor_params["B_ind"]
+                    st.session_state["eta_ind"] = motor_params["eta_ind"] * 100
                     st.success(f"✅ {motor_name} loaded!")
                 st.rerun()
     
@@ -174,11 +196,63 @@ with tab1:
             B_pm = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_pm", 0.04), step=0.01, key="B_pm", format="%.3f")
         with pm_col6:
             eta_pm = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_pm", 97.0), step=0.5, key="eta_pm")
+    
+    st.markdown("---")
+    st.markdown("### 🔵 INDUCTION ASYNCHRONOUS MOTOR")
+    
+    with st.expander("📋 Induction Motor – Electrical Parameters", expanded=True):
+        ind_e1, ind_e2, ind_e3, ind_e4 = st.columns(4)
+        with ind_e1:
+            V_ph = st.number_input("Phase Voltage V [V]", min_value=10.0, max_value=1000.0, value=230.0, step=10.0, key="V_ph")
+        with ind_e2:
+            f_hz = st.number_input("Frequency [Hz]", min_value=25.0, max_value=100.0, value=50.0, step=5.0, key="f_hz")
+        with ind_e3:
+            p_pair = st.number_input("Pole Pairs (p)", min_value=1, max_value=6, value=2, step=1, key="p_pair")
+        with ind_e4:
+            eta_ind = st.number_input("Efficiency η [%]", min_value=50.0, max_value=99.0, value=st.session_state.get("eta_ind", 93.0), step=0.5, key="eta_ind")
+    
+    with st.expander("📋 Induction Motor – Resistances", expanded=True):
+        ind_r1, ind_r2, ind_r3 = st.columns(3)
+        with ind_r1:
+            R1 = st.number_input("R1 [Ω]", min_value=0.001, max_value=50.0, value=st.session_state.get("R1", 0.095), step=0.01, key="R1", format="%.3f")
+        with ind_r2:
+            R2 = st.number_input("R2 [Ω]", min_value=0.001, max_value=50.0, value=st.session_state.get("R2", 0.075), step=0.01, key="R2", format="%.3f")
+        with ind_r3:
+            X_tot = st.number_input("X1+X2 [Ω]", min_value=0.01, max_value=100.0, value=st.session_state.get("X_tot", 1.2), step=0.1, key="X_tot")
+    
+    with st.expander("📋 Induction Motor – Mechanical Parameters", expanded=True):
+        ind_m1, ind_m2 = st.columns(2)
+        with ind_m1:
+            J_ind = st.number_input("J Motor [kg·m²]", min_value=0.001, max_value=50.0, value=st.session_state.get("J_ind", 1.8), step=0.1, key="J_ind", format="%.3f")
+        with ind_m2:
+            B_ind = st.number_input("B Friction [N·m·s/rad]", min_value=0.001, max_value=10.0, value=st.session_state.get("B_ind", 0.05), step=0.01, key="B_ind", format="%.3f")
 
 with tab2:
     st.markdown("## 📊 CALCULATION & RESULTS")
     st.markdown("---")
-
+    
+    st.markdown("### 🎮 PI CONTROLLER SETTINGS")
+    
+    pcol1, pcol2 = st.columns(2)
+    
+    with pcol1:
+        st.markdown("#### 🔴 PM MOTOR – PI Controller")
+        pm_c1, pm_c2 = st.columns(2)
+        with pm_c1:
+            kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm")
+        with pm_c2:
+            ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm")
+    
+    with pcol2:
+        st.markdown("#### 🔵 INDUCTION – PI Controller")
+        ind_c1, ind_c2 = st.columns(2)
+        with ind_c1:
+            kp_ind = st.number_input("Kp (IND)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_ind", 2.5), step=0.1, key="kp_ind")
+        with ind_c2:
+            ti_ind = st.number_input("Ti [s] (IND)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_ind", 1.0), step=0.05, key="ti_ind")
+    
+    st.markdown("---")
+    
     def sim_pm(sp, kp, ti, tl, km, j_mot, b, j_ld, dur):
         J = N_MOT * j_mot + j_ld
         omega, intg = 0.0, 0.0
@@ -187,7 +261,32 @@ with tab2:
             e = rpm2rads(sp) - omega
             intg += e * dt
             u = kp * e + (kp / max(ti, 1e-6)) * intg
-            Tm = np.clip(km * u, -50.0, 150.0)
+            Tm = np.clip(km * u / N_MOT, -50.0, 150.0)
+            domega = (N_MOT * Tm - tl - b * omega) / J
+            omega = max(0.0, min(omega + domega * dt, rpm2rads(2000)))
+            t_a.append(i * dt)
+            sp_a.append(sp)
+            pv_a.append(rads2rpm(omega))
+            tq_a.append(Tm)
+        return np.array(t_a), np.array(sp_a), np.array(pv_a), np.array(tq_a)
+
+    def sim_ind(sp, kp, ti, tl, V, f, r1, r2, x, j_mot, b, j_ld, pp, dur):
+        J = N_MOT * j_mot + j_ld
+        omega_s_max = 2 * np.pi * f / pp
+        omega, intg = 0.0, 0.0
+        t_a, sp_a, pv_a, tq_a = [], [], [], []
+        for i in range(int(dur / dt)):
+            e = rpm2rads(sp) - omega
+            intg += e * dt
+            u = kp * e + (kp / max(ti, 1e-6)) * intg
+            omega_s = np.clip(u, 0.0, omega_s_max * 1.05)
+            V_act = V * min(omega_s / max(omega_s_max, 1e-6), 1.1)
+            if omega_s > 0.5:
+                slip = np.clip((omega_s - omega) / omega_s, -0.99, 0.99)
+                R2s = r2 / slip if abs(slip) > 1e-6 else r2 / 1e-6
+                Tm = np.clip((3.0 * V_act**2 * R2s) / (omega_s * ((r1 + R2s)**2 + x**2)), -150.0, 150.0)
+            else:
+                Tm = 0.0
             domega = (N_MOT * Tm - tl - b * omega) / J
             omega = max(0.0, min(omega + domega * dt, rpm2rads(2000)))
             t_a.append(i * dt)
@@ -203,17 +302,22 @@ with tab2:
     if run_btn:
         with st.spinner("🔄 Calculation in progress ..."):
             try:
-                r_pm = sim_pm(sp_rpm, st.session_state.get("kp_pm", 3.0), st.session_state.get("ti_pm", 0.8), t_load, Km, J_pm, B_pm, J_load, t_sim)
+                r_pm = sim_pm(sp_rpm, kp_pm, ti_pm, t_load, Km, J_pm, B_pm, J_load, t_sim)
+                r_id = sim_ind(sp_rpm, kp_ind, ti_ind, t_load, V_ph, f_hz, R1, R2, X_tot, J_ind, B_ind, J_load, p_pair, t_sim)
 
                 st.session_state["t_pm"] = r_pm[0]
                 st.session_state["sp_pm"] = r_pm[1]
                 st.session_state["pv_pm"] = r_pm[2]
                 st.session_state["tq_pm"] = r_pm[3]
+                st.session_state["t_id"] = r_id[0]
+                st.session_state["sp_id"] = r_id[1]
+                st.session_state["pv_id"] = r_id[2]
+                st.session_state["tq_id"] = r_id[3]
                 st.session_state["res_tsim"] = t_sim
                 st.session_state["res_sp"] = sp_rpm
                 st.session_state["res_tload"] = t_load
                 st.session_state["ready"] = True
-
+                
                 st.success("✅ Calculation complete! Results below.")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
@@ -225,23 +329,13 @@ with tab2:
         pv_pm = st.session_state["pv_pm"]
         sp_pm = st.session_state["sp_pm"]
         tq_pm = st.session_state["tq_pm"]
+        t_id = st.session_state["t_id"]
+        pv_id = st.session_state["pv_id"]
+        sp_id = st.session_state["sp_id"]
+        tq_id = st.session_state["tq_id"]
         _tsim = st.session_state["res_tsim"]
         _sp = st.session_state["res_sp"]
         _tl = st.session_state["res_tload"]
-
-        st.markdown("## 🎮 PI CONTROLLER SETTINGS")
-
-        pcol1, pcol2 = st.columns(2)
-
-        with pcol1:
-            st.markdown("#### 🔴 PM MOTOR – PI Controller")
-            pm_c1, pm_c2 = st.columns(2)
-            with pm_c1:
-                kp_pm = st.number_input("Kp (PM)", min_value=0.1, max_value=50.0, value=st.session_state.get("kp_pm", 3.0), step=0.1, key="kp_pm_display")
-            with pm_c2:
-                ti_pm = st.number_input("Ti [s] (PM)", min_value=0.05, max_value=10.0, value=st.session_state.get("ti_pm", 0.8), step=0.05, key="ti_pm_display")
-
-        st.markdown("---")
 
         st.markdown("## ⏱️ TIME AXIS SETTINGS")
         tc1, tc2 = st.columns(2)
@@ -253,32 +347,39 @@ with tab2:
             t_start = 0.0
 
         m_pm = (t_pm >= t_start) & (t_pm <= t_end)
+        m_id = (t_id >= t_start) & (t_id <= t_end)
 
         st.markdown("---")
         st.markdown("## 📊 KEY METRICS")
-
-        mc1, mc2, mc3, mc4 = st.columns(4)
+        
+        mc1, mc2, mc3, mc4, mc5, mc6 = st.columns(6)
         with mc1:
             st.metric("🎯 Setpoint", f"{_sp:.0f} RPM")
         with mc2:
             st.metric("🔴 PM – Final", f"{pv_pm[-1]:.0f} RPM", delta=f"{pv_pm[-1]-_sp:+.0f}")
         with mc3:
-            st.metric("🔴 PM – Max Tm", f"{np.max(np.abs(tq_pm)):.2f} N·m")
+            st.metric("🔵 IND – Final", f"{pv_id[-1]:.0f} RPM", delta=f"{pv_id[-1]-_sp:+.0f}")
         with mc4:
+            st.metric("🔴 PM – Max Tm", f"{np.max(np.abs(tq_pm)):.2f} N·m")
+        with mc5:
+            st.metric("🔵 IND – Max Tm", f"{np.max(np.abs(tq_id)):.2f} N·m")
+        with mc6:
             st.metric("🔧 Load", f"{_tl:.1f} N·m")
 
         st.markdown("---")
         st.markdown("## 📈 SIMULATION GRAPHS")
 
-        C_SP, C_PM = "#FFA500", "#FF000F"
-        fig, axes = plt.subplots(2, 1, figsize=(15, 12))
-        plt.subplots_adjust(hspace=0.4)
+        C_SP, C_PM, C_IND = "#FFA500", "#FF000F", "#6764f6"
+        fig, axes = plt.subplots(4, 1, figsize=(15, 24))
+        plt.subplots_adjust(hspace=0.5)
 
         ax1 = axes[0]
         ax1_twin = ax1.twinx()
+        
         ax1.plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP – Desired", zorder=10)
         ax1.plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="Speed [RPM]", zorder=10)
         ax1_twin.plot(t_pm[m_pm], tq_pm[m_pm], "-", color="black", lw=2.5, label="Torque [N·m]", zorder=5)
+        
         ax1.set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold", color=C_PM)
         ax1_twin.set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold", color="black")
         ax1.tick_params(axis='y', labelcolor=C_PM)
@@ -287,19 +388,50 @@ with tab2:
         ax1.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
         ax1.grid(True, alpha=0.3)
         ax1.set_title("🔴 PM MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#CC0000", pad=8)
+        
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax1_twin.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, fontsize=10, loc="best")
 
-        axes[1].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP")
-        axes[1].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM Motor")
-        axes[1].set_ylim(bottom=-50)
-        axes[1].set_title("⚡ SPEED RESPONSE", fontsize=13, fontweight="bold", color="black", pad=8)
-        axes[1].set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold")
-        axes[1].set_xlabel("Time [s]", fontsize=11, fontweight="bold")
-        axes[1].set_xlim(t_start, t_end)
-        axes[1].grid(True, alpha=0.3)
-        axes[1].legend(fontsize=10, loc="best")
+        ax2 = axes[1]
+        ax2_twin = ax2.twinx()
+        
+        ax2.plot(t_id[m_id], sp_id[m_id], "--", color=C_SP, lw=2, label="SP – Desired", zorder=10)
+        ax2.plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="Speed [RPM]", zorder=10)
+        ax2_twin.plot(t_id[m_id], tq_id[m_id], "-", color="black", lw=2.5, label="Torque [N·m]", zorder=5)
+        
+        ax2.set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold", color=C_IND)
+        ax2_twin.set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold", color="black")
+        ax2.tick_params(axis='y', labelcolor=C_IND)
+        ax2_twin.tick_params(axis='y', labelcolor="black")
+        ax2.set_xlim(t_start, t_end)
+        ax2.set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        ax2.grid(True, alpha=0.3)
+        ax2.set_title("🔵 IND MOTOR – SPEED + TORQUE", fontsize=13, fontweight="bold", color="#4444cc", pad=8)
+        
+        lines3, labels3 = ax2.get_legend_handles_labels()
+        lines4, labels4 = ax2_twin.get_legend_handles_labels()
+        ax2.legend(lines3 + lines4, labels3 + labels4, fontsize=10, loc="best")
+
+        axes[2].plot(t_pm[m_pm], sp_pm[m_pm], "--", color=C_SP, lw=2, label="SP")
+        axes[2].plot(t_pm[m_pm], pv_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM")
+        axes[2].plot(t_id[m_id], pv_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 IND")
+        axes[2].set_ylim(bottom=-50)
+        axes[2].set_title("⚡ SPEED COMPARISON", fontsize=13, fontweight="bold", color="black", pad=8)
+        axes[2].set_ylabel("Speed [RPM]", fontsize=11, fontweight="bold")
+        axes[2].set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        axes[2].set_xlim(t_start, t_end)
+        axes[2].grid(True, alpha=0.3)
+        axes[2].legend(fontsize=10, loc="best")
+
+        axes[3].plot(t_pm[m_pm], tq_pm[m_pm], "-", color=C_PM, lw=2.5, label="🔴 PM Torque")
+        axes[3].plot(t_id[m_id], tq_id[m_id], "-", color=C_IND, lw=2.5, label="🔵 IND Torque")
+        axes[3].set_title("⚡ TORQUE COMPARISON", fontsize=13, fontweight="bold", color="black", pad=8)
+        axes[3].set_ylabel("Torque [N·m]", fontsize=11, fontweight="bold")
+        axes[3].set_xlabel("Time [s]", fontsize=11, fontweight="bold")
+        axes[3].set_xlim(t_start, t_end)
+        axes[3].grid(True, alpha=0.3)
+        axes[3].legend(fontsize=10, loc="best")
 
         plt.tight_layout()
         st.pyplot(fig, use_container_width=True)
@@ -312,7 +444,9 @@ with tab2:
             "Time [s]": np.round(ts, 2),
             "SP [RPM]": np.full(n, _sp),
             "PM [RPM]": np.round(np.interp(ts, t_pm, pv_pm), 0),
-            "PM Tm [N·m]": np.round(np.interp(ts, t_pm, tq_pm), 2),
+            "PM Tm": np.round(np.interp(ts, t_pm, tq_pm), 2),
+            "IND [RPM]": np.round(np.interp(ts, t_id, pv_id), 0),
+            "IND Tm": np.round(np.interp(ts, t_id, tq_id), 2),
         })
         st.dataframe(df, use_container_width=True, height=400)
 
